@@ -1,0 +1,42 @@
+name: Daily TV Source Update
+
+on:
+  schedule:
+    # 每天 UTC 时间 2:00 运行 (对应北京时间 10:00)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  update-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js (for script execution)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install node-fetch
+
+      - name: Fetch and Update TV Source
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_USER: zt192
+          GITEE_REPO: ln2
+        run: |
+          node update_tv.js
+
+      - name: Commit and Push (if changed)
+        run: |
+          git config --global user.name 'zt192'
+          git config --global user.email 'zt192@users.noreply.gitee.com'
+          git add LN.m3u
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto update TV source $(date '+%Y-%m-%d %H:%M')" && git push)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
