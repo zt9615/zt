@@ -19,12 +19,12 @@ jobs:
           curl -sSL "https://raw.githubusercontent.com/Jsnzkpg/Jsnzkpg/Jsnzkpg/Jsnzkpg1.m3u" -o input.m3u
           
           # 去掉第二行，保留第一行和第三行之后的所有内容
-          head -n 1 input.m3u > Jsnzkpg1.m3u
-          tail -n +3 input.m3u >> Jsnzkpg1.m3u
+          head -n 1 input.m3u > ln2.m3u
+          tail -n +3 input.m3u >> ln2.m3u
           
           # 显示处理结果
           echo "原始行数：$(wc -l < input.m3u)"
-          echo "处理后行数：$(wc -l < Jsnzkpg1.m3u)"
+          echo "处理后行数：$(wc -l < ln2.m3u)"
           echo "已删除第 2 行"
 
       - name: Push to Gitee
@@ -41,9 +41,9 @@ jobs:
           cd gitee-repo
           
           # 复制处理后的文件
-          cp ../Jsnzkpg1.m3u .
+          cp ../ln2.m3u .
           
           # 提交并推送
-          git add Jsnzkpg1.m3u
+          git add ln2.m3u
           git commit -m "auto: sync m3u file $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
           git push origin master --force
