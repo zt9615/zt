@@ -3,7 +3,7 @@ name: Sync M3U to Gitee
 on:
   push:
     paths:
-      - 'ln2.m3u'
+      - 'lm.m3u'
   workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'  # 每 6 小时
@@ -23,8 +23,8 @@ jobs:
         run: |
           git clone https://gitee.com/zt192/source.git gitee-repo
           cd gitee-repo
-          cp $GITHUB_WORKSPACE/ln2.m3u .
-          git add ln2.m3u
-          git commit -m "Sync ln2.m3u from GitHub" || echo "No changes to commit"
+          cp $GITHUB_WORKSPACE/lm.m3u .
+          git add lm.m3u
+          git commit -m "Sync lm.m3u from GitHub" || echo "No changes to commit"
           git remote set-url origin https://zt9615:$GITEE_TOKEN@gitee.com/zt192/source.git
           git push origin main --force
