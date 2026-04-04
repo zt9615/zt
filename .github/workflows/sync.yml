@@ -21,12 +21,12 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          git clone https://gitee.com/zt192/source.git gitee-repo
+          # Clone with token in URL
+          git clone https://oauth2:${GITEE_TOKEN}@gitee.com/zt192/source.git gitee-repo
           cd gitee-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           cp $GITHUB_WORKSPACE/lm.m3u .
           git add lm.m3u
           git commit -m "Sync lm.m3u from GitHub" || echo "No changes to commit"
-          git remote set-url origin https://zt9615:$GITEE_TOKEN@gitee.com/zt192/source.git
           git push origin main --force
