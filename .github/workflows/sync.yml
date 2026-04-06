@@ -1,32 +1,57 @@
-name: Sync M3U to Gitee
+name: 更新电视源并同步到 Gitee
 
 on:
-  push:
-    paths:
-      - 'lm.m3u'
-  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # 每 6 小时
-    - cron: '0 0 */2 * *'  # 每 2 天
-    - cron: '0 0 * * 1'    # 每周一
+    # 每 6 小时执行一次
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # 支持手动触发
 
 jobs:
-  sync-to-gitee:
+  update-and-sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Push to Gitee
+      - name: 下载最新电视源
+        run: |
+          echo "📥 正在下载电视源..."
+          curl -fsSL -o lm.m3u "https://ds65.tv1288.xyz"
+          if [ ! -s lm.m3u ]; then
+            echo "❌ 下载失败或文件为空"
+            exit 1
+          fi
+          echo "✅ 下载成功，文件大小：$(wc -c < lm.m3u) 字节"
+
+      - name: 提交到 GitHub 仓库
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add lm.m3u
+          if git diff --cached --quiet; then
+            echo "ℹ️ 文件无变化，跳过 GitHub 提交"
+          else
+            git commit -m "更新电视源 $(date '+%Y-%m-%d %H:%M')"
+            git push
+            echo "✅ 已提交到 GitHub"
+          fi
+
+      - name: 同步到 Gitee
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          # Clone with token in URL
+          echo "📤 正在同步到 Gitee..."
           git clone https://oauth2:${GITEE_TOKEN}@gitee.com/zt192/source.git gitee-repo
           cd gitee-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          cp $GITHUB_WORKSPACE/lm.m3u .
-          git add lm.m3u
-          git commit -m "Sync lm.m3u from GitHub" || echo "No changes to commit"
-          git push origin main --force
+          cp $GITHUB_WORKSPACE/lm.m3u ./LN.m3u
+          git add LN.m3u
+          if git diff --cached --quiet; then
+            echo "ℹ️ Gitee 文件无变化，跳过提交"
+          else
+            git commit -m "同步电视源 $(date '+%Y-%m-%d %H:%M')"
+            git push origin main --force
+            echo "✅ 已同步到 Gitee"
+          fi
