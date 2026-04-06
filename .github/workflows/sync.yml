@@ -17,7 +17,10 @@ jobs:
       - name: 下载最新电视源
         run: |
           echo "📥 正在下载电视源..."
-          curl -fsSL -o lm.m3u "https://ds65.tv1288.xyz"
+          curl -fsSL \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
+            -H "Referer: https://ds65.tv1288.xyz/" \
+            -o lm.m3u "https://ds65.tv1288.xyz"
           if [ ! -s lm.m3u ]; then
             echo "❌ 下载失败或文件为空"
             exit 1
