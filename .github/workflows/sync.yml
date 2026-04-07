@@ -18,25 +18,22 @@ jobs:
           echo "📥 从 Worker 下载电视源..."
           
           # 直接调用你的 Worker
-          curl -fsSL "https://zt.3438789.workers.dev" -o lm.m3u
-          
-          # 复制一份为 sy.m3u
-          cp lm.m3u sy.m3u
+          curl -fsSL "https://zt.3438789.workers.dev" -o sy.m3u
           
           # 检查是否成功
-          if [ ! -s lm.m3u ]; then
+          if [ ! -s sy.m3u ]; then
             echo "❌ 下载失败，文件为空"
             exit 1
           fi
           
-          CHANNEL_COUNT=$(grep -c '#EXTINF' lm.m3u || echo "0")
+          CHANNEL_COUNT=$(grep -c '#EXTINF' sy.m3u || echo "0")
           echo "✅ 共获取 $CHANNEL_COUNT 个频道"
-          echo "📋 文件大小：$(wc -c < lm.m3u) 字节"
+          echo "📋 文件大小：$(wc -c < sy.m3u) 字节"
 
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add lm.m3u sy.m3u
+          git add sy.m3u
           git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d)"
           git push
