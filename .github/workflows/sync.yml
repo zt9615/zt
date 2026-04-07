@@ -48,25 +48,21 @@ jobs:
           # 检查 token 是否设置
           if [ -z "$GITEE_TOKEN" ]; then
             echo "❌ 错误: GITEE_TOKEN 未设置"
-            echo "请去 GitHub Settings → Secrets → 添加 GITEE_TOKEN"
             exit 1
           fi
+          
+          # 取消浅克隆限制（关键！）
+          echo "📦 获取完整历史..."
+          git fetch --unshallow 2>/dev/null || true
           
           # 添加 Gitee 远程仓库
           git remote remove gitee 2>/dev/null || true
           git remote add gitee https://zt192:${GITEE_TOKEN}@gitee.com/zt192/sy.git
           
-          echo "📡 远程仓库列表:"
-          git remote -v
-          
           # 推送到 Gitee master分支
           echo "⬆️ 开始推送..."
           git push gitee main:master --force || {
             echo "❌ Gitee 推送失败"
-            echo "可能原因:"
-            echo "1. 仓库 https://gitee.com/zt192/sy 不存在"
-            echo "2. Token 权限不足 (需要 projects 权限)"
-            echo "3. Token 已过期"
             exit 1
           }
           echo "✅ Gitee 推送成功"
