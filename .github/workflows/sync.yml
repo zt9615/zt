@@ -13,38 +13,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download via proxy services
+      - name: Download from Worker
         run: |
-          echo "📥 尝试通过代理下载..."
-
-          # 方案1: 使用 jina.ai 文本提取服务
-          curl -fsSL \
-            -H "User-Agent: Mozilla/5.0" \
-            "https://r.jina.ai/http://ds65.tv1288.xyz" \
-            -o raw.txt 2>&1 && echo "✅ jina.ai 成功"
-
-          # 如果失败，尝试方案2: textise.net
-          if [ ! -s raw.txt ] || ! grep -q "#EXTINF" raw.txt; then
-            echo "⚠️ jina 失败，尝试 textise..."
-            rm -f raw.txt
-            curl -fsSL \
-              "https://r.jina.ai/http://textise.net/showtext.aspx?strURL=https://ds65.tv1288.xyz" \
-              -o raw.txt 2>&1
-          fi
-
+          echo "📥 从 Worker 下载电视源..."
+          
+          # 直接调用你的 Worker
+          curl -fsSL "https://zt.3438789.workers.dev" -o lm.m3u
+          
+          # 复制一份为 sy.m3u
+          cp lm.m3u sy.m3u
+          
           # 检查是否成功
-          if [ ! -s raw.txt ]; then
-            echo "❌ 代理下载失败"
+          if [ ! -s lm.m3u ]; then
+            echo "❌ 下载失败，文件为空"
             exit 1
           fi
-
-          # 提取 M3U 内容
-          grep -E '^(#EXTINF|#EXTM3U|http)' raw.txt > lm.m3u
-          cp lm.m3u sy.m3u
-
+          
           CHANNEL_COUNT=$(grep -c '#EXTINF' lm.m3u || echo "0")
           echo "✅ 共获取 $CHANNEL_COUNT 个频道"
-          rm -f raw.txt
+          echo "📋 文件大小：$(wc -c < lm.m3u) 字节"
 
       - name: Commit changes
         run: |
