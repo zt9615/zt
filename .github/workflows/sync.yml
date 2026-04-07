@@ -1,6 +1,45 @@
-curl -fsSL \
+- name: 下载最新电视源
+        run: |
+          echo "📥 正在下载电视源..."
+          
+          # 1. 先下载 HTML 页面
+          curl -fsSL \
             -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
-            -H "Referer: https://ds65.tv1288.xyz/" \
-            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8" \
-            -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" \
-            -o lm.m3u "https://ds65.tv1288.xyz"
+            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+            -H "Accept-Language: zh-CN,zh;q=0.9" \
+            -o index.html "https://ds65.tv1288.xyz"
+          
+          if [ ! -f index.html ]; then
+            echo "❌ 下载 HTML 页面失败"
+            exit 1
+          fi
+          
+          # 2. 查看是否包含常见电视源关键字
+          if ! grep -q "#EXTINF" index.html; then
+            echo "❌ HTML 中没有找到电视源数据（#EXTINF 关键字）"
+            echo "文件内容预览："
+            head -50 index.html
+            exit 1
+          fi
+          
+          # 3. 从 HTML 中提取 m3u 数据（假设数据在 <textarea> 或 <div> 标签中）
+          # 先尝试用 sed 提取，兼容大多数格式
+          sed -n '/<textarea/,/<\/textarea>/p' index.html | sed 's/<textarea[^>]*>//g' | sed '/<\/textarea>/d' > lm.m3u
+          
+          # 如果上述没提取到内容，直接看是否整段都是
+          if [ ! -s lm.m3u ]; then
+            # 尝试直接复制（有些站点直接返回的就是 m3u 内容，虽然头是 html）
+            cp index.html lm.m3u
+          fi
+          
+          # 4. 清理临时文件
+          rm -f index.html
+          
+          if [ ! -s lm.m3u ]; then
+            echo "❌ 提取电视源数据失败或文件为空"
+            exit 1
+          fi
+          
+          echo "✅ 下载成功，文件大小：$(wc -c < lm.m3u) 字节"
+          echo "📋 文件内容预览（前 5 行）："
+          head -5 lm.m3u
