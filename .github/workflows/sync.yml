@@ -46,6 +46,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 先拉取远程最新代码（避免浅克隆冲突）
+          git pull --rebase origin main || true
           git add sy.m3u
           git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d)"
           git push
