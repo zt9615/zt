@@ -38,12 +38,12 @@ jobs:
           git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d)"
           git push
 
-      - name: Push to Gitee
+      - name: Upload to Gitee
         if: success()
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          echo "🚀 推送到 Gitee..."
+          echo "🚀 上传 sy.m3u 到 Gitee..."
           
           # 检查 token 是否设置
           if [ -z "$GITEE_TOKEN" ]; then
@@ -51,18 +51,29 @@ jobs:
             exit 1
           fi
           
-          # 取消浅克隆限制（关键！）
-          echo "📦 获取完整历史..."
-          git fetch --unshallow 2>/dev/null || true
+          # Base64 编码文件内容
+          CONTENT_B64=$(base64 -w 0 sy.m3u)
           
-          # 添加 Gitee 远程仓库
-          git remote remove gitee 2>/dev/null || true
-          git remote add gitee https://zt192:${GITEE_TOKEN}@gitee.com/zt192/sy.git
+          # 先获取文件 SHA（如果文件存在）
+          SHA=$(curl -s \
+            -H "Authorization: token ${GITEE_TOKEN}" \
+            "https://gitee.com/api/v5/repos/zt192/sy/contents/sy.m3u?ref=master" | \
+            grep -o '"sha":"[^"]*"' | cut -d'"' -f4)
           
-          # 推送到 Gitee master分支
-          echo "⬆️ 开始推送..."
-          git push gitee main:master --force || {
-            echo "❌ Gitee 推送失败"
-            exit 1
-          }
-          echo "✅ Gitee 推送成功"
+          # 构建 JSON 数据
+          if [ -n "$SHA" ]; then
+            # 更新已有文件
+            JSON="{\"content\":\"${CONTENT_B64}\",\"message\":\"🔄 更新直播源 $(date +%Y-%m-%d)\",\"sha\":\"${SHA}\"}"
+          else
+            # 创建新文件
+            JSON="{\"content\":\"${CONTENT_B64}\",\"message\":\"🔄 创建直播源\"}"
+          fi
+          
+          # 使用 Gitee API 上传/更新文件
+          curl -X PUT \
+            -H "Content-Type: application/json" \
+            -H "Authorization: token ${GITEE_TOKEN}" \
+            -d "$JSON" \
+            "https://gitee.com/api/v5/repos/zt192/sy/contents/sy.m3u"
+          
+          echo "✅ Gitee 上传完成"
