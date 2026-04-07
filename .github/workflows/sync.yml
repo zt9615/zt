@@ -43,6 +43,7 @@ jobs:
           head -5 sy.m3u
 
       - name: Commit changes
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add sy.m3u
