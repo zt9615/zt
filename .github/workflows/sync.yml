@@ -51,29 +51,56 @@ jobs:
             exit 1
           fi
           
-          # Base64 编码文件内容
-          CONTENT_B64=$(base64 -w 0 sy.m3u)
-          
-          # 先获取文件 SHA（如果文件存在）
-          SHA=$(curl -s \
+          # 先获取文件 SHA（如果文件存在），写入临时文件
+          curl -s \
             -H "Authorization: token ${GITEE_TOKEN}" \
-            "https://gitee.com/api/v5/repos/zt192/sy/contents/sy.m3u?ref=master" | \
-            grep -o '"sha":"[^"]*"' | cut -d'"' -f4)
+            "https://gitee.com/api/v5/repos/zt192/sy/contents/sy.m3u?ref=master" \
+            -o /tmp/gitee_file_info.json 2>/dev/null
           
-          # 构建 JSON 数据
-          if [ -n "$SHA" ]; then
-            # 更新已有文件
-            JSON="{\"content\":\"${CONTENT_B64}\",\"message\":\"🔄 更新直播源 $(date +%Y-%m-%d)\",\"sha\":\"${SHA}\"}"
-          else
-            # 创建新文件
-            JSON="{\"content\":\"${CONTENT_B64}\",\"message\":\"🔄 创建直播源\"}"
-          fi
+          # 用 Python 构建 JSON 并上传（避免 shell 参数过长问题）
+          python3 << 'PYEOF'
+          import base64, json, subprocess, os
           
-          # 使用 Gitee API 上传/更新文件
-          curl -X PUT \
-            -H "Content-Type: application/json" \
-            -H "Authorization: token ${GITEE_TOKEN}" \
-            -d "$JSON" \
-            "https://gitee.com/api/v5/repos/zt192/sy/contents/sy.m3u"
+          token = os.environ["GITEE_TOKEN"]
           
-          echo "✅ Gitee 上传完成"
+          # 读取文件内容
+          with open("sy.m3u", "rb") as f:
+              content_b64 = base64.b64encode(f.read()).decode()
+          
+          # 读取 SHA
+          sha = ""
+          try:
+              with open("/tmp/gitee_file_info.json") as f:
+                  info = json.load(f)
+                  sha = info.get("sha", "")
+          except:
+              pass
+          
+          # 构建 payload
+          payload = {"content": content_b64, "message": "🔄 更新直播源"}
+          if sha:
+              payload["sha"] = sha
+              print(f"📝 更新已有文件 (SHA: {sha[:8]}...)")
+          else:
+              print("📝 创建新文件")
+          
+          # 写入 payload 文件
+          with open("/tmp/gitee_payload.json", "w") as f:
+              json.dump(payload, f)
+          
+          # 调用 curl 上传
+          result = subprocess.run([
+              "curl", "-s", "-X", "PUT",
+              "-H", "Content-Type: application/json",
+              "-H", f"Authorization: token {token}",
+              "-d", "@/tmp/gitee_payload.json",
+              "https://gitee.com/api/v5/repos/zt192/sy/contents/sy.m3u"
+          ], capture_output=True, text=True)
+          
+          print(result.stdout[:200] if result.stdout else "")
+          if result.returncode != 0:
+              print(f"❌ 上传失败: {result.stderr}")
+              exit(1)
+          else:
+              print("✅ Gitee 上传完成")
+          PYEOF
