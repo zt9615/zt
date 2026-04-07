@@ -30,17 +30,6 @@ jobs:
           echo "✅ 共获取 $CHANNEL_COUNT 个频道"
           echo "📋 文件大小：$(wc -c < sy.m3u) 字节"
 
-      - name: Add EPG information
-        run: |
-          echo "📺 添加 EPG 节目单信息..."
-          
-          # 1. 在文件开头添加 EPG URL（使用更稳定的 51zmt 源）
-          sed -i '1i #EXTM3U x-tvg-url="https://123.tv1288.xyz/2026.xml"' sy.m3u
-          
-          echo "✅ EPG 信息添加完成"
-          echo "📋 示例前3行："
-          head -3 sy.m3u
-
       - name: Modify channel names (🦀 + 🦞)
         run: |
           echo "🦀 添加频道名前后缀..."
@@ -48,12 +37,6 @@ jobs:
           # 只处理包含 http 的行（排除第一行标题）
           # 格式: 频道名,http:// → 螃蟹频道名小龙虾,http://
           sed -i '/http/s/^\([^,]*\),\(http.*\)/🦀\1🦞,\2/' sy.m3u
-          
-          # 2. 为每个频道添加 tvg-name（EPG 需要干净的频道名，不带 emoji）
-          # 格式: #EXTINF:-1,🦀频道名🦞 → #EXTINF:-1 tvg-name="频道名",🦀频道名🦞
-          sed -i 's/#EXTINF:\([^,]*\),\(🦀[^🦞]*🦞\)/#EXTINF:\1 tvg-name="\2",\2/' sy.m3u
-          # 去掉 tvg-name 值中的 emoji
-          sed -i 's/tvg-name="🦀\([^🦞]*\)🦞"/tvg-name="\1"/g' sy.m3u
           
           echo "✅ 频道名修改完成"
           echo "📋 示例前5行："
