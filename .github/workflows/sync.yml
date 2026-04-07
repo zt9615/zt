@@ -35,7 +35,7 @@ jobs:
           echo "📺 添加 EPG 节目单信息..."
           
           # 1. 在文件开头添加 EPG URL（使用更稳定的 51zmt 源）
-          sed -i '1i #EXTM3U x-tvg-url="http://epg.51zmt.top:8000/api/diyp/"' sy.m3u
+          sed -i '1i #EXTM3U x-tvg-url="https://123.tv1288.xyz/2026.xml"' sy.m3u
           
           echo "✅ EPG 信息添加完成"
           echo "📋 示例前3行："
