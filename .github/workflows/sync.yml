@@ -40,11 +40,33 @@ jobs:
 
       - name: Push to Gitee
         if: success()
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           echo "🚀 推送到 Gitee..."
           
-          # 添加 Gitee 远程仓库 (zt192/sy, master分支)
-          git remote add gitee https://zt192:${{ secrets.GITEE_TOKEN }}@gitee.com/zt192/sy.git 2>/dev/null || true
+          # 检查 token 是否设置
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "❌ 错误: GITEE_TOKEN 未设置"
+            echo "请去 GitHub Settings → Secrets → 添加 GITEE_TOKEN"
+            exit 1
+          fi
+          
+          # 添加 Gitee 远程仓库
+          git remote remove gitee 2>/dev/null || true
+          git remote add gitee https://zt192:${GITEE_TOKEN}@gitee.com/zt192/sy.git
+          
+          echo "📡 远程仓库列表:"
+          git remote -v
           
           # 推送到 Gitee master分支
-          git push gitee main:master --force || echo "⚠️ Gitee 推送失败，请检查仓库是否存在"
+          echo "⬆️ 开始推送..."
+          git push gitee main:master --force || {
+            echo "❌ Gitee 推送失败"
+            echo "可能原因:"
+            echo "1. 仓库 https://gitee.com/zt192/sy 不存在"
+            echo "2. Token 权限不足 (需要 projects 权限)"
+            echo "3. Token 已过期"
+            exit 1
+          }
+          echo "✅ Gitee 推送成功"
