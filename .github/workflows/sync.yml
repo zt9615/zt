@@ -1,45 +1,64 @@
-- name: 下载最新电视源
+name: Update IPTV Source
+
+on:
+  schedule:
+    # 每天 UTC 0:00 执行（北京时间 8:00）
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download and save M3U
         run: |
           echo "📥 正在下载电视源..."
-          
-          # 1. 先下载 HTML 页面
+
+          # 下载页面内容
           curl -fsSL \
             -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
             -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
             -H "Accept-Language: zh-CN,zh;q=0.9" \
-            -o index.html "https://ds65.tv1288.xyz"
-          
-          if [ ! -f index.html ]; then
-            echo "❌ 下载 HTML 页面失败"
+            -o raw.html "https://ds65.tv1288.xyz"
+
+          if [ ! -f raw.html ]; then
+            echo "❌ 下载失败"
             exit 1
           fi
-          
-          # 2. 查看是否包含常见电视源关键字
-          if ! grep -q "#EXTINF" index.html; then
-            echo "❌ HTML 中没有找到电视源数据（#EXTINF 关键字）"
-            echo "文件内容预览："
-            head -50 index.html
-            exit 1
+
+          # 从 HTML 中提取 M3U 内容
+          # 先尝试 textarea 标签内提取
+          sed -n '/<textarea/,/<\/textarea>/p' raw.html | \
+            sed 's/<textarea[^>]*>//g' | \
+            sed '/<\/textarea>/d' > extracted.m3u
+
+          # 如果没提取到，直接从 #EXTM3U 开始截取
+          if [ ! -s extracted.m3u ]; then
+            sed -n '/#EXTM3U/,$ p' raw.html > extracted.m3u
           fi
-          
-          # 3. 从 HTML 中提取 m3u 数据（假设数据在 <textarea> 或 <div> 标签中）
-          # 先尝试用 sed 提取，兼容大多数格式
-          sed -n '/<textarea/,/<\/textarea>/p' index.html | sed 's/<textarea[^>]*>//g' | sed '/<\/textarea>/d' > lm.m3u
-          
-          # 如果上述没提取到内容，直接看是否整段都是
-          if [ ! -s lm.m3u ]; then
-            # 尝试直接复制（有些站点直接返回的就是 m3u 内容，虽然头是 html）
-            cp index.html lm.m3u
-          fi
-          
-          # 4. 清理临时文件
-          rm -f index.html
-          
-          if [ ! -s lm.m3u ]; then
-            echo "❌ 提取电视源数据失败或文件为空"
-            exit 1
-          fi
-          
-          echo "✅ 下载成功，文件大小：$(wc -c < lm.m3u) 字节"
-          echo "📋 文件内容预览（前 5 行）："
-          head -5 lm.m3u
+
+          # 过滤只保留 M3U 有效行
+          grep -E '^(#EXTINF|#EXTM3U|#EXTVLCOPT|http)' extracted.m3u > lm.m3u
+
+          # 复制一份为 sy.m3u
+          cp lm.m3u sy.m3u
+
+          # 统计频道数量
+          CHANNEL_COUNT=$(grep -c '#EXTINF' lm.m3u || echo "0")
+          echo "✅ 共获取 $CHANNEL_COUNT 个频道"
+          echo "📋 文件大小：$(wc -c < lm.m3u) 字节"
+
+          # 清理临时文件
+          rm -f raw.html extracted.m3u
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add lm.m3u sy.m3u
+          git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d %H:%M)"
+          git push
