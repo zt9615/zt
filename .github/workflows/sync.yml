@@ -37,3 +37,14 @@ jobs:
           git add sy.m3u
           git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d)"
           git push
+
+      - name: Push to Gitee
+        if: success()
+        run: |
+          echo "🚀 推送到 Gitee..."
+          
+          # 添加 Gitee 远程仓库
+          git remote add gitee https://${{ secrets.GITEE_OWNER }}:${{ secrets.GITEE_TOKEN }}@gitee.com/${{ secrets.GITEE_OWNER }}/zt.git 2>/dev/null || true
+          
+          # 推送到 Gitee
+          git push gitee main --force || echo "⚠️ Gitee 推送失败，请检查仓库是否存在"
