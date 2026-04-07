@@ -18,15 +18,65 @@ jobs:
         run: |
           echo "📥 正在下载电视源..."
 
-          # 下载页面内容
+          # 尝试方案1: curl 完整浏览器伪装
           curl -fsSL \
             -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
             -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
-            -H "Accept-Language: zh-CN,zh;q=0.9" \
-            -o raw.html "https://ds65.tv1288.xyz"
+            -H "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8" \
+            -H "Accept-Encoding: identity" \
+            -H "Connection: keep-alive" \
+            -H "Referer: https://tv1288.xyz/" \
+            -H "Sec-Fetch-Dest: document" \
+            -H "Sec-Fetch-Mode: navigate" \
+            -H "Sec-Fetch-Site: none" \
+            -H "Upgrade-Insecure-Requests: 1" \
+            -o raw.html "https://ds65.tv1288.xyz" 2>&1
 
-          if [ ! -f raw.html ]; then
-            echo "❌ 下载失败"
+          # 如果方案1失败(403等)，尝试方案2: 用wget
+          if [ ! -s raw.html ] || grep -q "403" raw.html; then
+            echo "⚠️ curl 方案失败，尝试 wget..."
+            rm -f raw.html
+            wget --quiet \
+              --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
+              --header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+              --header="Accept-Language: zh-CN,zh;q=0.9" \
+              --header="Referer: https://tv1288.xyz/" \
+              -O raw.html "https://ds65.tv1288.xyz" 2>&1
+          fi
+
+          # 如果方案2也失败，尝试方案3: Python requests
+          if [ ! -s raw.html ] || ! grep -q "#EXTINF" raw.html; then
+            echo "⚠️ wget 方案也失败，尝试 Python..."
+            rm -f raw.html
+            python3 -c "
+import urllib.request
+req = urllib.request.Request(
+    'https://ds65.tv1288.xyz',
+    headers={
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Referer': 'https://tv1288.xyz/',
+    }
+)
+with urllib.request.urlopen(req, timeout=30) as resp:
+    with open('raw.html', 'wb') as f:
+        f.write(resp.read())
+print('Python download done')
+" 2>&1
+          fi
+
+          # 检查是否成功
+          if [ ! -s raw.html ]; then
+            echo "❌ 所有下载方案均失败"
+            exit 1
+          fi
+
+          if ! grep -q "#EXTINF" raw.html; then
+            echo "❌ 下载成功但未找到电视源数据"
+            echo "文件大小: $(wc -c < raw.html) 字节"
+            echo "文件内容前10行:"
+            head -10 raw.html
             exit 1
           fi
 
