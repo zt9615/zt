@@ -43,4 +43,4 @@ jobs:
       - name: Push to Gitee
         run: |
           git remote add gitee https://zt192:${{ secrets.GITEE_TOKEN }}@gitee.com/zt192/sy.git
-          git push gitee main
+          git push gitee main --force
