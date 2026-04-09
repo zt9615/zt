@@ -42,7 +42,5 @@ jobs:
 
       - name: Push to Gitee
         run: |
-          git config user.name "${{ secrets.GITEE_USERNAME }}"
-          git config user.email "${{ secrets.GITEE_EMAIL }}"
-          git remote add gitee https://${{ secrets.GITEE_USERNAME }}:${{ secrets.GITEE_TOKEN }}@gitee.com/zt192/sy.git
+          git remote set-url gitee https://${{ secrets.GITEE_USERNAME }}:${{ secrets.GITEE_TOKEN }}@gitee.com/zt192/sy.git
           git push gitee main
