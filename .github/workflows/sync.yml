@@ -12,8 +12,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download from Worker
         run: |
@@ -42,7 +40,3 @@ jobs:
           git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d)"
           git push
 
-      - name: Push to Gitee
-        run: |
-          git remote add gitee https://zt192:${{ secrets.GITEE_TOKEN }}@gitee.com/zt192/sy.git
-          git push gitee main --force
