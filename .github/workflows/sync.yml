@@ -39,3 +39,10 @@ jobs:
           git add sy.m3u
           git diff --cached --quiet || git commit -m "🔄 更新直播源 $(date +%Y-%m-%d)"
           git push
+
+      - name: Push to Gitee
+        run: |
+          git config user.name "${{ secrets.GITEE_USERNAME }}"
+          git config user.email "${{ secrets.GITEE_EMAIL }}"
+          git remote add gitee https://${{ secrets.GITEE_USERNAME }}:${{ secrets.GITEE_TOKEN }}@gitee.com/zt192/sy.git
+          git push gitee main
