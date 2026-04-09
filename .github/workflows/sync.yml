@@ -30,18 +30,6 @@ jobs:
           echo "✅ 共获取 $CHANNEL_COUNT 个频道"
           echo "📋 文件大小：$(wc -c < sy.m3u) 字节"
 
-      - name: Modify channel names (🦀 + 🦞)
-        run: |
-          echo "🦀 添加频道名前后缀..."
-          
-          # 只处理包含 http 的行（排除第一行标题）
-          # 格式: 频道名,http:// → 螃蟹频道名小龙虾,http://
-          sed -i '/http/s/^\([^,]*\),\(http.*\)/🦀\1🦞,\2/' sy.m3u
-          
-          echo "✅ 频道名修改完成"
-          echo "📋 示例前5行："
-          head -5 sy.m3u
-
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
